@@ -1,0 +1,6 @@
+# v2: 베이스 이미지만 alpine으로 축소
+FROM node:18-alpine
+WORKDIR /app
+COPY . .
+RUN npm install
+CMD ["node", "server.js"]

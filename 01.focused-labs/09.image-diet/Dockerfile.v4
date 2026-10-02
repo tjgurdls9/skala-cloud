@@ -1,0 +1,11 @@
+# v4: 멀티 스테이지 빌드로 빌드 도구와 캐시를 최종 이미지에서 제외
+FROM node:18-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --omit=dev
+COPY . .
+
+FROM node:18-alpine
+WORKDIR /app
+COPY --from=build /app /app
+CMD ["node", "server.js"]

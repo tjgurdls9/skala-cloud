@@ -1,0 +1,32 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.5'
+    id 'io.spring.dependency-management' version '1.1.6'
+}
+
+group = 'com.skala'
+version = '1.0.0'
+description = '쿠버네티스 이해 및 앱 배포 — 샘플 애플리케이션'
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
+}
+
+repositories { mavenCentral() }
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // 12장: liveness/readiness 프로브가 볼 엔드포인트를 제공한다
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    // 14장: Prometheus 형식 지표 노출
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') { useJUnitPlatform() }
+
+// 2장: 멀티스테이지 빌드에서 COPY 할 JAR 가 하나만 남게 한다
+tasks.named('jar') { enabled = false }

@@ -1,0 +1,10 @@
+# 운영 프로필 — 이 파일은 이미지에 포함되지만,
+# 실제 운영값은 9장의 ConfigMap 으로 덮어쓴다(SPRING_CONFIG_ADDITIONAL_LOCATION).
+
+app:
+  greeting: "안녕하세요 (prod 프로필)"
+
+logging:
+  level:
+    root: INFO
+    com.skala.shop: INFO

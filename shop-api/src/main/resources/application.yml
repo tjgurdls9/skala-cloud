@@ -1,0 +1,56 @@
+# 기본 설정 — 로컬 개발과 모든 환경의 공통값
+# 9장: 환경마다 달라지는 값은 여기 두지 않고 ConfigMap/환경변수로 주입한다
+
+spring:
+  application:
+    name: shop-api
+  # 12장: 종료 시 처리 중이던 요청을 마무리한다
+  lifecycle:
+    timeout-per-shutdown-phase: 25s
+
+server:
+  port: 8080
+  shutdown: graceful
+  # 8장·12장: ALB 가 TLS 를 끝내므로 X-Forwarded-* 를 신뢰해야
+  # https 접속인데 리다이렉트가 http:// 로 나가는 문제가 생기지 않는다
+  forward-headers-strategy: framework
+
+management:
+  # 12장: 관리 포트를 분리하면 Service·Ingress 가 8080 만 노출하므로
+  # /actuator 가 인터넷에 열리지 않는다
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      # 5장: liveness/readiness 그룹을 만든다 (기본은 꺼져 있다)
+      probes:
+        enabled: true
+      show-details: never
+      group:
+        # liveness 는 가볍게 — 의존성을 확인하지 않는다
+        liveness:
+          include: livenessState
+        # readiness 는 의존성까지 — 실패하면 트래픽만 끊긴다
+        readiness:
+          include: readinessState,manualReadiness
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      # 5장 Downward API: 지표에 Pod 이름을 붙이면 Pod 별로 나눠 볼 수 있다
+      pod: ${POD_NAME:local}
+
+app:
+  greeting: "안녕하세요 (기본값)"
+
+logging:
+  pattern:
+    # 어느 Pod 에서 난 로그인지 남긴다 — 복제본이 여러 개면 필수
+    level: "%5p [${POD_NAME:local}]"

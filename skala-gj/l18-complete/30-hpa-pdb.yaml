@@ -1,0 +1,27 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: shop-__ME__
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: shop-__ME__ }
+  minReplicas: 2
+  maxReplicas: 4          # 훈련생 노드가 최대 6대다. 반 4개가 함께 쓰므로 크게 잡지 않는다
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 60 }
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300    # 축소는 천천히 — 진동 방지
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: shop-__ME__
+spec:
+  # minAvailable 이 replicas 와 같으면 노드 비우기가 영원히 막힌다.
+  # HPA 의 minReplicas 가 2이므로 1로 둔다.
+  minAvailable: 1
+  selector:
+    matchLabels: { app: shop-__ME__ }

@@ -1,0 +1,18 @@
+# 7장 — Service. 바뀌는 Pod IP 앞에 안 바뀌는 주소를 세운다.
+#   kubectl apply -f k8s/ch07-service/
+#   kubectl get endpoints shop-api      → Pod 개수만큼 IP 가 나와야 정상
+#   kubectl run nettest --rm -it --image=nicolaka/netshoot -- bash
+#     curl -s http://shop-api/api/info    (반복하면 pod 값이 바뀐다)
+apiVersion: v1
+kind: Service
+metadata:
+  name: shop-api
+spec:
+  type: ClusterIP
+  selector:
+    app: shop-api                  # 이 라벨을 가진 Ready Pod 를 찾는다
+  ports:
+    - name: http
+      port: 80
+      targetPort: http             # 컨테이너 포트 이름 참조 (번호가 바뀌어도 안전)
+    # 관리 포트(8081)는 노출하지 않는다 — /actuator 를 클러스터 안에서도 감춘다

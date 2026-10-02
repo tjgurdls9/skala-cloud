@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: shop-__ME__
+spec:
+  type: ClusterIP
+  selector: { app: shop-__ME__ }
+  ports:
+    - { name: http, port: 80, targetPort: http }   # 관리 포트 8081 은 노출하지 않는다
+---
+# ★ 교재와 가장 크게 다른 파일.
+# 이 클러스터에는 AWS Load Balancer Controller 가 없다. ingress-nginx 하나가
+# 이미 떠 있고 LB 도 그것 하나뿐이다. alb.* 애노테이션은 읽는 주체가 없어 무시된다.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shop-__ME__
+  annotations:
+    # nginx 가 읽는 애노테이션 — 접두어가 다르다는 점에 주목
+    nginx.ingress.kubernetes.io/proxy-body-size: "8m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+    # TLS 를 붙이려면 아래를 켠다. 단 개인별 발급 금지 — 반별로 하나만 (실습 12 주의)
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: shop-__ME__.skala-gj.com      # *.skala-gj.com 이 이 LB 로 온다
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: shop-__ME__, port: { number: 80 } }
+  # tls:
+  #   - hosts: [class-__NS__.skala-gj.com]
+  #     secretName: shop-__ME__-tls

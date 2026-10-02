@@ -1,0 +1,57 @@
+# 실습 3 — Harbor 에 올린 내 이미지로 배포한다. Service 까지 한 파일에.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shop-__ME__
+  labels: { app: shop-__ME__, owner: __ME__ }
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: { app: shop-__ME__ }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }   # 실습 9 무중단의 핵심
+  template:
+    metadata:
+      labels: { app: shop-__ME__, owner: __ME__ }
+    spec:
+      terminationGracePeriodSeconds: 40
+      imagePullSecrets: [{ name: harbor-cred }]
+      containers:
+        - name: app
+          image: __REG__/shop-__ME__:__TAG__
+          ports:
+            - { name: http, containerPort: 8080 }
+            - { name: mgmt, containerPort: 8081 }
+          env:
+            - { name: POD_NAME, valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+            - { name: JAVA_TOOL_OPTIONS, value: "-XX:MaxRAMPercentage=75" }
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }      # HPA 가 이 값을 분모로 쓴다
+            limits:   { cpu: "1",  memory: 1Gi }
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: mgmt }
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: mgmt }
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: mgmt }
+            periodSeconds: 5
+            timeoutSeconds: 3
+          lifecycle:
+            preStop: { exec: { command: ["sh", "-c", "sleep 5"] } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shop-__ME__
+  labels: { app: shop-__ME__ }
+spec:
+  type: ClusterIP
+  selector: { app: shop-__ME__ }      # 오타 나면 Endpoints 가 빈다 (부록 A D3)
+  ports:
+    - { name: http, port: 80, targetPort: http }   # 8081 을 노출하지 않는다

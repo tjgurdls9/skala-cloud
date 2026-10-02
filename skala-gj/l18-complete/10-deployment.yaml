@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shop-__ME__
+  labels:
+    app: shop-__ME__
+    owner: __ME__
+    app.kubernetes.io/name: shop-api
+spec:
+  # HPA 를 쓰므로 replicas 를 적지 않는다 (13장) — apply 마다 되돌아간다
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: { app: shop-__ME__ }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  template:
+    metadata:
+      labels: { app: shop-__ME__, owner: __ME__ }
+    spec:
+      # preStop 5초 + Spring 유예 25초 = 30초 < 40초. 검산이 맞아야 SIGKILL 을 피한다
+      terminationGracePeriodSeconds: 40
+
+      # ★ 교재와 다름 — 이 클러스터는 단일 AZ(ap-northeast-2b) 다.
+      #   zone 분산 제약을 넣어도 만족시킬 zone 이 하나뿐이라 의미가 없다.
+      #   노드 분산만 남긴다.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: { app: shop-__ME__ }
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile: { type: RuntimeDefault }
+      automountServiceAccountToken: false
+
+      # ★ 교재와 다름 — Harbor 프로젝트가 private 이라 풀 시크릿이 필요하다
+      imagePullSecrets:
+        - name: harbor-cred
+
+      volumes:
+        - { name: tmp, emptyDir: {} }
+
+      containers:
+        - name: app
+          # ★ 교재와 다름 — ECR 이 아니라 Harbor. 태그는 불변으로 (2장)
+          image: __REG__/shop-__ME__:__TAG__
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: http, containerPort: 8080 }
+            - { name: mgmt, containerPort: 8081 }
+          envFrom:
+            - configMapRef: { name: shop-config-__ME__ }
+            - secretRef:    { name: shop-secret-__ME__ }
+          env:
+            - { name: POD_NAME,  valueFrom: { fieldRef: { fieldPath: metadata.name } } }
+            - { name: NODE_NAME, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
+          resources:
+            # 노드가 m6i.xlarge(4vCPU/16GiB)이고 반 4개가 함께 쓴다.
+            # 교재의 768Mi/1Gi 보다 작게 잡아 서로 자리를 남긴다.
+            requests: { cpu: 200m, memory: 512Mi }
+            limits:   { cpu: "1",  memory: 1Gi }
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: mgmt }
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: mgmt }
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: mgmt }
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          lifecycle:
+            preStop: { exec: { command: ["sh", "-c", "sleep 5"] } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }

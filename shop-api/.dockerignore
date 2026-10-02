@@ -1,0 +1,12 @@
+# 2장: 빌드 컨텍스트를 줄이고, 비밀 파일이 이미지에 섞여 들어가는 것을 막는다
+.git
+.gitignore
+build/
+out/
+.gradle/
+*.log
+.env
+*.pem
+.idea/
+k8s/
+README.md

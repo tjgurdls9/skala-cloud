@@ -1,0 +1,26 @@
+# 실습 16 — 일부러 OOMKilled 를 만든다.
+# limit 256Mi 인데 힙을 limit 의 75% 로 잡으면 힙 밖(메타스페이스·스레드·다이렉트 버퍼)이
+# 모자라 컨테이너 전체가 커널에 죽는다. 앱 로그에는 아무것도 안 남는다 — 그것이 핵심이다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oom-__ME__
+  labels: { app: oom-__ME__, owner: __ME__ }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: oom-__ME__ }
+  template:
+    metadata:
+      labels: { app: oom-__ME__, owner: __ME__ }
+    spec:
+      imagePullSecrets: [{ name: harbor-cred }]
+      containers:
+        - name: app
+          image: __REG__/shop-__ME__:__TAG__
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
+          resources:
+            requests: { cpu: 200m, memory: 256Mi }
+            limits:   { cpu: 500m, memory: 256Mi }   # ★ 일부러 작게

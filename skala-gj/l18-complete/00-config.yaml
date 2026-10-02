@@ -1,0 +1,23 @@
+# 실습 18 — 완성 매니페스트 (광주캠퍼스판). 13장 ch12-complete 를 이 클러스터에 맞춘 것.
+#
+# 교재판과 다른 곳은 세 군데뿐이다. 나머지는 그대로다.
+#   ① 이미지가 ECR → Harbor (+ imagePullSecrets)
+#   ② Ingress 가 ALB → ingress-nginx
+#   ③ 단일 AZ 라 zone 분산이 무의미 → hostname 분산만 남김
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shop-config-__ME__
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  APP_GREETING: "안녕하세요 (skala-gj)"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: shop-secret-__ME__
+type: Opaque
+stringData:
+  # 실습용이다. Secret 은 암호화가 아니라 인코딩이며, 같은 반 전원이 볼 수 있다.
+  # 운영에서는 External Secrets + Secrets Manager 를 쓴다 (12장).
+  DB_PASSWORD: "lab-only-not-a-real-password"

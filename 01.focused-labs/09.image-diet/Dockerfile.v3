@@ -1,0 +1,7 @@
+# v3: 의존성 파일 우선 COPY로 캐시 활용 + 운영 의존성만 설치
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --omit=dev
+COPY . .
+CMD ["node", "server.js"]

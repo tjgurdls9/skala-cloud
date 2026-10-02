@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: skala-webserver
+  namespace: skala-gj1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: skala-webserver
+  template:
+    metadata:
+      labels:
+        app: skala-webserver
+    spec:
+      imagePullSecrets:
+        - name: harbor-cred
+      containers:
+        - name: app
+          image: harbor.skala-gj.com/skala-gj1/skala-webserver:1.0.1
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: skala-webserver
+  namespace: skala-gj1
+spec:
+  selector:
+    app: skala-webserver
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: skala-webserver
+  namespace: skala-gj1
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: skala-gj1-webserver.skala-gj.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: skala-webserver
+                port:
+                  number: 80

@@ -1,0 +1,147 @@
+SKALA report verification evidence
+timestamp=2026-08-26 15:53:19 +0900
+worktree=/Users/seohyeokin/workspace/skala-cloud
+
+[tool versions]
+Docker version 29.6.2, build dfc4efb
+exit=0
+Docker Compose version v5.3.1
+exit=0
+v26.5.0
+exit=0
+ruby 2.6.10p210 (2022-04-12 revision 67958) [universal.arm64e-darwin25]
+exit=0
+Python 3.11.15
+exit=0
+
+[compose config]
+$ docker compose -f 01.focused-labs/06.3tier/compose.yaml config
+name: 063tier
+services:
+  db:
+    environment:
+      MYSQL_DATABASE: skala
+      MYSQL_PASSWORD: [REDACTED]
+      MYSQL_ROOT_PASSWORD: [REDACTED]
+      MYSQL_USER: user
+    healthcheck:
+      test:
+        - CMD
+        - healthcheck.sh
+        - --connect
+      interval: 3s
+      retries: 20
+    image: mariadb:11
+    networks:
+      default: null
+    volumes:
+      - type: volume
+        source: db-data
+        target: /var/lib/mysql
+        volume: {}
+      - type: bind
+        source: /Users/seohyeokin/workspace/skala-cloud/01.focused-labs/06.3tier/db/init.sql
+        target: /docker-entrypoint-initdb.d/init.sql
+        read_only: true
+        bind: {}
+  was:
+    build:
+      context: /Users/seohyeokin/workspace/skala-cloud/01.focused-labs/06.3tier/was
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+        required: true
+    environment:
+      DB_HOST: db
+    networks:
+      default: null
+  web:
+    depends_on:
+      was:
+        condition: service_started
+        required: true
+    image: nginx:latest
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 80
+        published: "80"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /Users/seohyeokin/workspace/skala-cloud/01.focused-labs/06.3tier/web/default.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+        bind: {}
+networks:
+  default:
+    name: 063tier_default
+volumes:
+  db-data:
+    name: 063tier_db-data
+exit=0
+
+[kubernetes yaml parse]
+$ ruby -e YAML.load_stream
+/Users/seohyeokin/workspace/skala-cloud/02.kubernetes/skala-webserver.yaml: YAML parse OK
+/Users/seohyeokin/workspace/skala-cloud/k8s_yaml1/ch05-pod/pod.yaml: YAML parse OK
+/Users/seohyeokin/workspace/skala-cloud/k8s_yaml1/ch05-pod/pod-with-probes.yaml: YAML parse OK
+/Users/seohyeokin/workspace/skala-cloud/k8s_yaml1/ch06-deployment/deployment.yaml: YAML parse OK
+/Users/seohyeokin/workspace/skala-cloud/k8s_yaml1/ch06-deployment/job-migration.yaml: YAML parse OK
+/Users/seohyeokin/workspace/skala-cloud/k8s_yaml1/ch07-service/service.yaml: YAML parse OK
+/Users/seohyeokin/workspace/skala-cloud/k8s_yaml1/ch08-ingress/ingress.yaml: YAML parse OK
+exit=0
+
+[javascript syntax]
+/Users/seohyeokin/workspace/skala-cloud/01.focused-labs/03.node-app/app.js: exit=0
+/Users/seohyeokin/workspace/skala-cloud/01.focused-labs/06.3tier/was/app.js: exit=0
+/Users/seohyeokin/workspace/skala-cloud/01.focused-labs/09.image-diet/server.js: exit=0
+
+[python syntax]
+exit=0
+
+[shell syntax]
+push.sh exit=0
+rehearsal-local.sh exit=0
+
+[docker runtime availability]
+$ docker ps -a
+permission denied while trying to connect to the docker API at unix:///Users/seohyeokin/.docker/run/docker.sock
+exit=1
+$ docker images
+permission denied while trying to connect to the docker API at unix:///Users/seohyeokin/.docker/run/docker.sock
+exit=1
+
+[spring tests]
+$ GRADLE_USER_HOME=/tmp/skala-gradle-cache ./gradlew test --no-daemon
+Fetching distribution.
+Downloading https://services.gradle.org/distributions/gradle-8.14.3-bin.zip
+
+Attempt 1/1 failed. Reason: services.gradle.org
+Exception in thread "main" java.net.UnknownHostException: services.gradle.org
+	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:567)
+	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327)
+	at java.base/java.net.Socket.connect(Socket.java:751)
+	at java.base/sun.security.ssl.SSLSocketImpl.connect(SSLSocketImpl.java:304)
+	at java.base/sun.net.NetworkClient.doConnect(NetworkClient.java:178)
+	at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:531)
+	at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:636)
+	at java.base/sun.net.www.protocol.https.HttpsClient.<init>(HttpsClient.java:264)
+	at java.base/sun.net.www.protocol.https.HttpsClient.New(HttpsClient.java:377)
+	at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.getNewHttpClient(AbstractDelegateHttpsURLConnection.java:193)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect0(HttpURLConnection.java:1257)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect(HttpURLConnection.java:1143)
+	at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.connect(AbstractDelegateHttpsURLConnection.java:179)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream0(HttpURLConnection.java:1705)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream(HttpURLConnection.java:1629)
+	at java.base/java.net.HttpURLConnection.getResponseCode(HttpURLConnection.java:531)
+	at java.base/sun.net.www.protocol.https.HttpsURLConnectionImpl.getResponseCode(HttpsURLConnectionImpl.java:307)
+	at org.gradle.wrapper.Download.download(SourceFile:1)
+	at org.gradle.wrapper.Install.forceFetch(SourceFile)
+	at org.gradle.wrapper.Install.lambda$createDist$0(SourceFile:9)
+	at org.gradle.wrapper.Install.createDist(SourceFile:24)
+	at org.gradle.wrapper.GradleWrapperMain.lambda$prepareWrapper$0(SourceFile:2)
+	at org.gradle.wrapper.GradleWrapperMain.main(SourceFile:2)
+exit=1

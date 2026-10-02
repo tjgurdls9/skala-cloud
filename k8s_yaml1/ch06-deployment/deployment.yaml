@@ -1,0 +1,49 @@
+# 6장 — Deployment. 5장의 Pod 스펙이 template 아래로 들어간다.
+#   kubectl apply -f k8s/ch06-deployment/
+#   kubectl get deploy,rs,pod          → 세 계층이 보인다
+#   kubectl set image deploy/shop-api app=shop-api:1.0.1
+#   kubectl rollout status deploy/shop-api --timeout=180s
+#   kubectl rollout undo deploy/shop-api
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shop-api
+  labels: { app: shop-api }
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: { app: shop-api }     # 불변 — 만든 뒤 못 바꾼다
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0                # 배포 중에도 용량이 줄지 않는다
+  template:
+    metadata:
+      labels: { app: shop-api }
+    spec:
+      containers:
+        - name: app
+          image: shop-api:1.0.0
+          ports:
+            - { name: http, containerPort: 8080 }
+            - { name: mgmt, containerPort: 8081 }
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: mgmt }
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: mgmt }
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: mgmt }
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }
+            limits:   { cpu: "1",  memory: 1Gi }

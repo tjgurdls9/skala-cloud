@@ -1,0 +1,23 @@
+# 6장 보강 — Job. 끝나야 하는 작업이다.
+# 12장에서 다룬 대로 마이그레이션은 Deployment 가 아니라 Job 으로 한 번만 돌린다.
+#   kubectl apply -f k8s/ch06-deployment/job-migration.yaml
+#   kubectl wait --for=condition=complete job/db-migration --timeout=600s
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration
+spec:
+  backoffLimit: 3                # 실패 시 3번까지 재시도
+  activeDeadlineSeconds: 600     # 10분 넘으면 강제 종료
+  ttlSecondsAfterFinished: 3600  # 완료 1시간 뒤 자동 삭제 (Completed Pod 가 쌓이지 않게)
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: shop-api:1.0.0
+          # 실습용: 실제 마이그레이션 대신 5초 대기 후 성공한다
+          command: ["sh", "-c", "echo '마이그레이션 시작'; sleep 5; echo '완료'"]
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits:   { cpu: 500m, memory: 512Mi }

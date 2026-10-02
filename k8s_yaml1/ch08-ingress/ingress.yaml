@@ -1,0 +1,32 @@
+# 8장 — Ingress. ALB 하나에 경로로 여러 서비스를 붙인다.
+# 주의: group.name 을 주지 않으면 Ingress 마다 ALB 가 하나씩 생겨 요금이 는다.
+#   kubectl apply -f k8s/ch08-ingress/
+#   kubectl get ingress shop-api -w      → ADDRESS 가 나오기까지 2~3분
+#   실습 후 반드시 삭제: kubectl delete -f k8s/ch08-ingress/   (ALB 도 함께 삭제된다)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shop-api
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip            # 노드를 안 거치고 Pod 로 직접
+    alb.ingress.kubernetes.io/group.name: student-01     # ← 자기 네임스페이스 이름으로 바꾼다
+    # 헬스체크를 관리 포트의 readiness 로 — 준비된 뒤에 타깃이 살아난다
+    alb.ingress.kubernetes.io/healthcheck-port: "8081"
+    alb.ingress.kubernetes.io/healthcheck-path: /actuator/health/readiness
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "5"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    # HTTPS 를 붙이려면 아래 두 줄의 주석을 풀고 ACM 인증서 ARN 을 넣는다
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:...
+    # alb.ingress.kubernetes.io/ssl-redirect: '443'
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: shop-api
+                port: { number: 80 }

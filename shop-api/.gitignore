@@ -1,0 +1,8 @@
+build/
+.gradle/
+out/
+*.log
+.env
+.idea/
+.DS_Store
+# gradle-wrapper.jar 는 절대 무시하지 않는다 — 없으면 ./gradlew 가 동작하지 않는다
